@@ -74,6 +74,94 @@ for model in models:
     # Show the plot
     plt.tight_layout()
     plt.show()
+    
+    
+
+# Create the dataframe
+df = pd.DataFrame(data)
+
+# Set up models and fold pairs
+models = ["BP+LDA", "CSP+SVM", "CFC_Mu_Beta", "MSC", "PLV", "CMI", "EEGNet", "DeepConvNet"]
+fold_pairs = ["1v2", "1v3", "1v4"]
+
+# Create line graph per subject
+for subject in df.index:
+    plt.figure(figsize=(10, 6), dpi=300)
+    
+    # Plot each model's data
+    for model in models:
+        accuracies = [df.loc[subject, f"{model}_{pair}"] for pair in fold_pairs]
+        plt.plot(fold_pairs, accuracies, marker='o', label=model)
+    
+    # Formatting the plot
+    plt.title(f'Accuracy for Subject {subject}')
+    plt.xlabel('Fold Pair')
+    plt.ylabel('Accuracy (%)')
+    plt.ylim(0, 100)  # Assuming accuracy ranges from 0 to 100
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.legend(loc='upper left', bbox_to_anchor=(1, 1), title='Model', fontsize='small')
+    
+    # Show the plot
+    plt.tight_layout()
+    plt.show()
+
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Data preparation
+df = pd.DataFrame(data)  # Start with your data
+df.set_index('Patient', inplace=True)
+
+# Remove any extra spaces from column names (to avoid hidden issues)
+df.columns = df.columns.str.strip()
+
+# Melt the data into long-form
+heatmap_data = df.reset_index().melt(id_vars="Patient", var_name="Model_Fold", value_name="Accuracy")
+
+# Check for unique model names
+print(heatmap_data["Model_Fold"].unique())  # Inspect the unique values
+
+# Correctly split Model_Fold into Model and Fold
+heatmap_data["Model"] = heatmap_data["Model_Fold"].str.split("_").str[:-1].str.join("_")  # Everything before the last part (i.e., 'CFC_Mu_Beta')
+heatmap_data["Fold"] = heatmap_data["Model_Fold"].str.split("_").str[-1]  # Last part (i.e., '1v2', '1v3', etc.)
+heatmap_data.drop("Model_Fold", axis=1, inplace=True)
+
+# Check unique combinations of Model and Fold
+print(heatmap_data[["Model", "Fold"]].drop_duplicates())  # Check for issues
+
+# Define custom order for models
+model_order = ['BPLDA', 'CSP', 'EEGNet', 'DeepConvNet']  # Preferred order for models
+# Include any other models not in this list, if needed
+other_models = heatmap_data['Model'].unique()
+other_models = [model for model in other_models if model not in model_order]
+model_order.extend(other_models)  # Append the remaining models
+
+# Function to plot heatmap for each patient
+def plot_patient_heatmap(data, **kwargs):
+    pivot = data.pivot(index="Model", columns="Fold", values="Accuracy")
+    sns.heatmap(
+        pivot, 
+        annot=True, fmt=".2f", cmap="RdBu_r", cbar=True,  # Using RdBu_r for red-blue without gray
+        vmin=40, vmax=80,  # Set fixed color range between 40 and 80
+        **kwargs
+    )
+
+# Faceted heatmaps by Patient
+g = sns.FacetGrid(heatmap_data, col="Patient", col_wrap=4, height=4, aspect=1.2, sharex=False, sharey=False)
+g.map_dataframe(plot_patient_heatmap)
+
+# Apply model order to the heatmap
+for ax in g.axes.flat:
+    # Reorder the models in the plot using the custom model_order
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0, ha="right")
+    ax.set_yticklabels([label.get_text() for label in ax.get_yticklabels() if label.get_text() in model_order], rotation=0, ha="right")
+
+# Add titles and tidy layout
+g.set_titles("Patient {col_name}")
+g.tight_layout()
+plt.show()
 
 #%%
 

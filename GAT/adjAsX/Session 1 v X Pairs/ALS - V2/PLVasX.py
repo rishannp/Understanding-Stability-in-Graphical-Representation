@@ -24,7 +24,7 @@ import torch as torch
 from scipy.signal import welch
 from scipy.stats import entropy
 from sklearn.feature_selection import mutual_info_classif
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from sklearn.model_selection import KFold
 from torch_geometric.loader import DataLoader
 from torch.nn import Linear
@@ -159,7 +159,7 @@ def bandpower(data,low,high):
     freq_res = freqs[1] - freqs[0]  # = 1 / 4 = 0.25
     
     # Compute the absolute power by approximating the area under the curve
-    power = simps(psd[idx_delta], dx=freq_res)
+    power = simpson(psd[idx_delta], dx=freq_res)
     
     return power
 
@@ -424,6 +424,7 @@ for subject_number in subject_numbers:
             # After the loop, store the accuracies for the current subject
             all_subjects_accuracies[f'S{subject_number}'] = fold_accuracies
 
+#%%
 import pandas as pd
 
 # Prepare data
