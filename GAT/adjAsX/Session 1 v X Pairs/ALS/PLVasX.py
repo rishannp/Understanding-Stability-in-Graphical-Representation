@@ -180,7 +180,7 @@ def bandpowercalc(l,band,fs):
 
 
 # % Preparing Data
-data_dir = r'C:\Users\uceerjp\Desktop\PhD\Penn State Data\Work\Data\OG_Full_Data'
+data_dir = r'/home/uceerjp/Multi-sessionData/OG_Full_Data'
 
 # Define the subject numbers
 subject_numbers = [1, 2, 5, 9, 21, 31, 34, 39]
