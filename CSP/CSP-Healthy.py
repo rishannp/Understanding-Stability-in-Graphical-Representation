@@ -23,6 +23,8 @@ from mne.decoding import CSP
 from sklearn.preprocessing import StandardScaler
 from scipy.signal import butter, filtfilt
 from sklearn.metrics import accuracy_score
+from scipy.stats import zscore
+
 
 #%%%%%%%%%%%% SHU Dataset - CSP %%%%%%%%%%%%%%%%
 
@@ -34,7 +36,7 @@ channels = np.array([
 ])
 
 # Define the directory containing your .mat files
-directory = r'C:\Users\uceerjp\Desktop\PhD\SHU Dataset\MatFiles'
+directory = r'C:\Users\uceerjp\Desktop\PhD\Multi-session Data\SHU Dataset\MatFiles'
 
 # Create a dictionary to store the concatenated data and labels by subject
 data_by_subject = {}
@@ -173,6 +175,41 @@ filtered_data_split = bandpass_filter_trials(data_split, low_freq=8, high_freq=3
 # Optionally delete the original data to free up memory
 del data_split, data_by_subject
 
+def zscore_normalize_trials(filtered_data_split):
+    """Apply Z-score normalization to each channel of each trial."""
+    normalized_data_split = {}
+
+    for subject in filtered_data_split:
+        subject_data = filtered_data_split[subject]
+        normalized_subject_data = {}
+
+        for direction in ['L', 'R']:
+            trials = subject_data[direction]  # Shape: (trials, channels, samples)
+            normalized_trials = []
+
+            for trial in range(trials.shape[0]):
+                trial_data = trials[trial, :, :]  # Shape: (channels, samples)
+
+                # Apply Z-score normalization to each channel of the trial
+                normalized_trial_data = np.zeros_like(trial_data)
+                for ch in range(trial_data.shape[0]):
+                    normalized_trial_data[ch, :] = zscore(trial_data[ch, :], axis=-1)  # Normalize each channel across time
+
+                normalized_trials.append(normalized_trial_data)
+
+            # Convert the list of normalized trials back to a NumPy array
+            normalized_subject_data[direction] = np.array(normalized_trials)
+
+        normalized_data_split[subject] = normalized_subject_data
+
+    return normalized_data_split
+
+# Apply Z-score normalization to the filtered data
+normalized_data_split = zscore_normalize_trials(filtered_data_split)
+
+# Optionally, delete the original filtered data to free up memory
+del filtered_data_split
+
 
 def split_into_folds(data, n_splits=5):
     """Splits data into n_splits causal folds."""
@@ -210,7 +247,7 @@ def prepare_folds_for_subjects(filtered_data_split, n_splits=5):
     return fold_data
 
 # Apply the fold splitting to filtered data
-fold_data = prepare_folds_for_subjects(filtered_data_split)
+fold_data = prepare_folds_for_subjects(normalized_data_split)
 
 # Example of accessing the folds
 for subject, data in fold_data.items():
@@ -343,7 +380,7 @@ def split_into_folds(data, n_folds=5):
 accuracies = {}
 
 # Iterate over each subject
-for subject, data in filtered_data_split.items():
+for subject, data in normalized_data_split.items():
     # Split the data into folds for Left and Right
     folds_L = split_into_folds(data['L'])
     folds_R = split_into_folds(data['R'])
